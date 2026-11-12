@@ -6,21 +6,26 @@ export default function AuthPage() {
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setLoading(true);
     try {
-      const fn = mode === 'login' ? api.login : api.signup;
-      const body = mode === 'login'
-        ? { email: form.email, password: form.password }
-        : form;
-      const data = await fn(body);
-      setSession(data.token, data.user);
-      navigate('/');
+      if (mode === 'signup') {
+        await api.signup(form);
+        setMode('login');
+        setForm({ name: '', email: form.email, password: '' });
+        setNotice('Account created! Please log in.');
+      } else {
+        const data = await api.login({ email: form.email, password: form.password });
+        setSession(data.token, data.user);
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,7 +42,7 @@ export default function AuthPage() {
           {['login', 'signup'].map((m) => (
             <button
               key={m}
-              onClick={() => { setMode(m); setError(''); }}
+              onClick={() => { setMode(m); setError(''); setNotice(''); }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium ${mode === m ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}`}
             >
               {m === 'login' ? 'Log in' : 'Sign up'}
@@ -70,6 +75,7 @@ export default function AuthPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
           />
+          {notice && <p className="text-green-600 text-sm">{notice}</p>}
           {error && <p className="text-red-600 text-sm">{error}</p>}
           <button
             type="submit"
